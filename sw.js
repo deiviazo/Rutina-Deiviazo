@@ -1,8 +1,9 @@
-﻿const CACHE_NAME = "rutina-deiviazo-v1";
+const CACHE_NAME = "rutina-deiviazo-v2";
 const ASSETS = [
   "./",
   "./index.html",
   "./manifest.webmanifest",
+  "./assets/header-bg.jpg",
   "./icons/apple-touch-icon.png",
   "./icons/icon-192.png",
   "./icons/icon-512.png"
@@ -35,4 +36,3 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
-

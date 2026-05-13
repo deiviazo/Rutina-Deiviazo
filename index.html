@@ -474,7 +474,7 @@ function saveHistoryToStorage() {
 
 function exportBackup() {
   const backup = {
-    app: "rutina-lucia-gil",
+    app: "rutina-deiviazo",
     version: 1,
     exportedAt: new Date().toISOString(),
     storage: state.storage,
@@ -485,7 +485,7 @@ function exportBackup() {
   const a = document.createElement("a");
   const date = new Date().toISOString().slice(0,10);
   a.href = url;
-  a.download = `rutina-lucia-backup-${date}.json`;
+  a.download = `rutina-deiviazo-backup-${date}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
@@ -825,30 +825,31 @@ function renderSetEditor() {
 }
 
 function renderSessionDetail(session) {
-  const cfg = ROUTINE[session.dayKey];
-  const totalVol = Object.values(session.snapshot).reduce((a,e)=>a+e.totalVol,0);
-  const overlay = div({position:"fixed",inset:"0",background:"rgba(0,0,0,0.85)",zIndex:"200",overflowY:"auto",padding:"20px 16px"});
-  const inner = div({maxWidth:"520px",margin:"0 auto"});
+  const cfg = ROUTINE[session.dayKey] || {label:session.dayLabel || "SESION", color:C.pull};
+  const snapshot = session.snapshot || {};
+  const totalVol = Object.values(snapshot).reduce((a,e)=>a+(Number(e.totalVol)||0),0);
+  const overlay = div({position:"fixed",inset:"0",background:"rgba(4,6,10,0.94)",zIndex:"200",overflowY:"auto",padding:"18px 14px 28px"});
+  const inner = div({maxWidth:"520px",margin:"0 auto",paddingBottom:"24px"});
   const hdr = div({display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"});
   const hdrLeft = div({});
   const hdrTop = div({display:"flex",alignItems:"center",gap:"10px",marginBottom:"4px"});
   hdrTop.appendChild(span({background:cfg.color,borderRadius:"5px",fontSize:"10px",fontWeight:"900",color:"#fff",padding:"3px 8px",letterSpacing:"0.1em"}, session.dayLabel));
   hdrTop.appendChild(span({fontSize:"15px",fontWeight:"700",color:C.text}, session.dateLabel));
   hdrLeft.appendChild(hdrTop);
-  hdrLeft.appendChild(p({margin:"0",fontSize:"11px",color:C.muted}, `${Object.keys(session.snapshot).length} ejercicios · ${totalVol.toFixed(0)} kg·rep`));
+  hdrLeft.appendChild(p({margin:"0",fontSize:"11px",color:C.muted}, `${Object.keys(snapshot).length} ejercicios · ${totalVol.toFixed(0)} kg·rep`));
   const closeBtn = btn({background:C.surface,border:`1px solid ${C.border}`,borderRadius:"8px",color:C.muted,fontSize:"18px",width:"34px",height:"34px",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center"}, "×", () => { state.detailSession=null; render(); });
   hdr.appendChild(hdrLeft); hdr.appendChild(closeBtn);
   inner.appendChild(hdr);
-  Object.entries(session.snapshot).forEach(([exName,exData]) => {
+  Object.entries(snapshot).forEach(([exName,exData]) => {
     const exCard = div({background:C.surface,border:`1px solid ${cfg.color}25`,borderRadius:"10px",padding:"13px 14px",marginBottom:"10px"});
     const exHdr = div({display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:"10px"});
     exHdr.appendChild(p({margin:"0",fontSize:"13px",fontWeight:"600",color:C.text,flex:"1",paddingRight:"8px"}, exName.replace(" ★","")));
-    if(exData.totalVol>0) exHdr.appendChild(span({fontSize:"10px",color:cfg.color,fontWeight:"700",flexShrink:"0",opacity:"0.8"}, `${exData.totalVol.toFixed(0)} kg·r`));
+    if((Number(exData.totalVol)||0)>0) exHdr.appendChild(span({fontSize:"10px",color:cfg.color,fontWeight:"700",flexShrink:"0",opacity:"0.8"}, `${(Number(exData.totalVol)||0).toFixed(0)} kg·r`));
     exCard.appendChild(exHdr);
     const tHdr = div({display:"grid",gridTemplateColumns:"22px 1fr 1fr 1fr",gap:"5px",marginBottom:"6px"});
     ["SERIE","PESO","REPS","HECHAS"].forEach(h=>tHdr.appendChild(span({fontSize:"8px",fontWeight:"800",color:C.muted,letterSpacing:"0.12em",textAlign:"center"},h)));
     exCard.appendChild(tHdr);
-    exData.sets.forEach((s,i)=>{
+    (exData.sets || []).forEach((s,i)=>{
       const row=div({display:"grid",gridTemplateColumns:"22px 1fr 1fr 1fr",gap:"5px",marginBottom:"4px"});
       row.appendChild(span({fontSize:"12px",color:C.muted,textAlign:"center",fontWeight:"700"},String(i+1)));
       row.appendChild(span({fontSize:"13px",color:s.weight?C.text:C.muted,textAlign:"center",fontWeight:s.weight?"600":"400"},s.weight?`${s.weight} kg`:"—"));
@@ -858,6 +859,11 @@ function renderSessionDetail(session) {
     });
     inner.appendChild(exCard);
   });
+  if (!Object.keys(snapshot).length) {
+    inner.appendChild(div({background:C.surface,border:`1px solid ${C.border}`,borderRadius:"10px",padding:"18px 14px",marginBottom:"10px"},
+      p({margin:"0",fontSize:"13px",color:C.muted,lineHeight:"1.55"},"Esta sesión no tiene datos guardados para mostrar.")
+    ));
+  }
   inner.appendChild(btn({width:"100%",background:C.surface,border:`1px solid ${C.border}`,borderRadius:"10px",color:C.muted,fontSize:"13px",fontWeight:"700",padding:"13px",cursor:"pointer",marginTop:"6px",letterSpacing:"0.05em"}, "← VOLVER", () => { state.detailSession=null; render(); }));
   overlay.appendChild(inner);
   return overlay;
@@ -967,9 +973,10 @@ function renderHistory() {
 
   wrap.appendChild(p({margin:"0 0 8px",fontSize:"10px",fontWeight:"800",color:C.muted,letterSpacing:"0.16em"},"SESIONES GUARDADAS"));
   [...state.history].reverse().forEach((session,idx)=>{
-    const cfg=ROUTINE[session.dayKey];
-    const exCount=Object.keys(session.snapshot).length;
-    const totalS=Object.values(session.snapshot).reduce((a,e)=>a+e.sets.length,0);
+    const cfg=ROUTINE[session.dayKey] || {label:session.dayLabel || "SESION", color:C.pull};
+    const snapshot = session.snapshot || {};
+    const exCount=Object.keys(snapshot).length;
+    const totalS=Object.values(snapshot).reduce((a,e)=>a+((e.sets||[]).length),0);
     const sesNum=state.history.length-idx;
     const card=div({background:C.surface,border:`1px solid ${cfg.color}25`,borderRadius:"10px",marginBottom:"8px",overflow:"hidden"});
     card.className = "session-card glass-card";
@@ -1010,15 +1017,15 @@ function render() {
   const headerBg = cfg ? `linear-gradient(155deg,${cfg.bg} 0%,#0f1117 80%)` : "#0f1117";
   const header = div({background:headerBg,padding:"18px 16px 0",position:"sticky",top:"0",zIndex:"20",borderBottom:`1px solid ${C.border}`,overflow:"hidden"});
   header.className = "app-header";
-  const headerArt = div({position:"absolute",inset:"0",backgroundImage:`linear-gradient(90deg,rgba(15,17,23,.98) 0%,rgba(15,17,23,.78) 38%,rgba(15,17,23,.62) 100%),url(${HEADER_BG_IMG})`,backgroundSize:"cover",backgroundPosition:"center",opacity:"0.56",zIndex:"0",pointerEvents:"none"});
+  const headerArt = div({position:"absolute",inset:"0",backgroundImage:`linear-gradient(90deg,rgba(15,17,23,.78) 0%,rgba(15,17,23,.42) 38%,rgba(15,17,23,.18) 100%),url(${HEADER_BG_IMG})`,backgroundSize:"cover",backgroundPosition:"center",opacity:"0.96",zIndex:"0",pointerEvents:"none"});
   header.appendChild(headerArt);
   const headerInner = div({maxWidth:"520px",margin:"0 auto",position:"relative",zIndex:"1"});
 
   const topRow = div({display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:"16px",gap:"12px"});
   const titleCol = div({flex:"1"});
   const h1 = document.createElement("h1");
-  h1.style.cssText = `margin:0;font-size:22px;font-weight:900;letter-spacing:0.06em;color:${C.text}`;
-  h1.innerHTML = `RUTINA <span style="color:${cfg?.color||C.pull}">DEIVIAZO</span>`;
+  h1.style.cssText = `margin:0;font-family:Impact,Haettenschweiler,'Arial Black',sans-serif;font-size:29px;font-weight:900;letter-spacing:0.08em;line-height:0.95;color:${C.text};text-transform:uppercase;text-shadow:0 2px 0 #000,0 0 16px rgba(0,0,0,.9),0 0 18px ${cfg?.color||C.pull}55;transform:skewX(-7deg);`;
+  h1.innerHTML = `RUTINA<br><span style="color:${cfg?.color||C.pull};font-size:35px;letter-spacing:0.1em;-webkit-text-stroke:1px rgba(255,255,255,.22);">DEIVIAZO</span>`;
   titleCol.appendChild(h1);
   titleCol.appendChild(p({margin:"2px 0 0",fontSize:"10px",color:C.muted,letterSpacing:"0.16em"},"MAQUINAS · MANCUERNAS · POLEAS · BARRA"));
   if (state.autoSaved) titleCol.appendChild(span({fontSize:"10px",color:C.green,fontWeight:"800",letterSpacing:"0.1em",display:"block",marginTop:"6px"},"✓ GUARDADO"));

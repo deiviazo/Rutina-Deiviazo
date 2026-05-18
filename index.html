@@ -828,7 +828,7 @@ function renderSessionDetail(session) {
   const cfg = ROUTINE[session.dayKey] || {label:session.dayLabel || "SESION", color:C.pull};
   const snapshot = session.snapshot || {};
   const totalVol = Object.values(snapshot).reduce((a,e)=>a+(Number(e.totalVol)||0),0);
-  const overlay = div({position:"fixed",inset:"0",background:"rgba(4,6,10,0.94)",zIndex:"200",overflowY:"auto",padding:"18px 14px 28px"});
+  const overlay = div({minHeight:"100vh",minHeight:"100dvh",background:"#05070c",padding:"18px 14px 32px"});
   const inner = div({maxWidth:"520px",margin:"0 auto",paddingBottom:"24px"});
   const hdr = div({display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"});
   const hdrLeft = div({});
@@ -1007,6 +1007,11 @@ function renderHistory() {
 function render() {
   const app = document.getElementById("app");
   app.innerHTML = "";
+  if (state.detailSession) {
+    app.appendChild(renderSessionDetail(state.detailSession));
+    setTimeout(() => window.scrollTo(0, 0), 0);
+    return;
+  }
   const cfg = state.tab !== "history" ? ROUTINE[state.tab] : null;
 
   const globalPattern = div({position:"fixed",inset:"0",backgroundImage:`url(${PATTERN_IMG})`,backgroundRepeat:"repeat",backgroundSize:"220px",opacity:"0.18",zIndex:"0",pointerEvents:"none"});
